@@ -1,3 +1,5 @@
+import calendar
+import datetime as dt
 import os
 
 from google.cloud import datastore
@@ -5,6 +7,10 @@ from google.cloud import datastore
 
 def is_production():
     return os.environ.get('ENVIRONMENT') == 'production'
+
+
+def get_start_time():
+    return dt.datetime.utcfromtimestamp(calendar.timegm((2018, 1, 6, 0, 0, 0)))
 
 
 def get(setting):
