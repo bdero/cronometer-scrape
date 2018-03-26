@@ -1,2 +1,7 @@
 Flask==0.12.2
+google-cloud-datastore==1.6.0
 gunicorn==19.7.1
+Pillow==5.0.0
+pyscreenshot==0.4.2
+PyVirtualDisplay==0.2.1
+selenium==3.11.0
