@@ -106,7 +106,7 @@ def get_screenshot(driver, element):
 
     buffer = BytesIO()
     image.save(buffer, format='PNG')
-    return base64.b64encode(buffer.getvalue())
+    return str(base64.b64encode(buffer.getvalue()))
 
 
 @page_wait

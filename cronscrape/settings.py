@@ -10,7 +10,9 @@ def is_production():
 
 
 def get_start_time():
-    return dt.datetime.utcfromtimestamp(calendar.timegm((2018, 1, 6, 0, 0, 0)))
+    date = get('first_day')
+    year, month, day = date.split('/')
+    return dt.datetime.utcfromtimestamp(calendar.timegm((int(year), int(month), int(day), 0, 0, 0)))
 
 
 def get(setting):

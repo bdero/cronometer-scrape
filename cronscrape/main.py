@@ -1,12 +1,15 @@
-from flask import Flask
+from flask import Flask, jsonify, request
+
+from cronscrape.scrape import collect_latest_reports
 
 
 app = Flask(__name__)
 
 
-@app.route('/')
-def index():
-    return 'index'
+@app.route('/latest')
+def latest():
+    amount = request.args.get('amount', default=1, type=int)
+    return jsonify(collect_latest_reports(amount))
 
 
 @app.route('/_ah/health')
