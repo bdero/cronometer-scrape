@@ -1,8 +1,11 @@
+import base64
 from contextlib import contextmanager
 import datetime as dt
 from functools import wraps
+from io import BytesIO
 import time
 
+from PIL import Image
 from pyvirtualdisplay.smartdisplay import SmartDisplay
 from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
@@ -83,8 +86,31 @@ def advance_day(driver, previous=False):
     ).click()
 
 
+def resize_to_page(driver):
+    body = driver.find_element_by_xpath('//body')
+    driver.set_window_size(body.size['width'] + 20, body.size['height'] + 20)
+
+
+def get_screenshot(driver, element):
+    """This method is necessary because the Chrome webdriver doesn't implement screenshots for elements."""
+    resize_to_page(driver)
+
+    loc = element.location
+    size = element.size
+    screenshot = driver.get_screenshot_as_png()
+    image = Image.open(BytesIO(screenshot))
+    image = image.crop((
+        loc['x'], loc['y'],
+        loc['x'] + size['width'], loc['y'] + size['height']
+    ))
+
+    buffer = BytesIO()
+    image.save(buffer, format='PNG')
+    return base64.b64encode(buffer.getvalue())
+
+
 @page_wait
-def collect_stats(driver):
+def collect_day_stats(driver):
     results = {
         'morning_weight': None,
         'night_weight': None,
@@ -112,16 +138,17 @@ def collect_stats(driver):
     results['burned'] = float(burned_el.text)
 
     page_element = driver.find_element_by_xpath('//table[@align="center"]/tbody')
+    results['screenshot'] = get_screenshot(driver, page_element)
 
     return results
 
 
-def collect_days(days):
+def collect_days(num_days):
     now = dt.datetime.utcnow()
     time_diff = now - settings.get_start_time()
     days_diff = time_diff.days
 
-    with get_display() as display:
+    with get_display():
         driver = webdriver.Chrome()
         login(driver)
 
@@ -130,15 +157,51 @@ def collect_days(days):
             days_diff -= 1
 
         results = {}
-        for day in range(days):
-            results[days_diff] = collect_stats(driver)
-            results[days_diff]['screenshot'] = display.waitgrab()
-
+        for day in range(num_days):
+            results[days_diff] = collect_day_stats(driver)
             advance_day(driver, previous=True)
             days_diff -= 1
 
         return results
 
 
-if __name__ == '__main__':
-    stats = collect_days(10)
+def render_reports(stats):
+    if len(stats) < 2:
+        return []
+
+    days = sorted(stats.items(), reverse=True)
+    current_day, current_data = days[0]
+
+    results = []
+    missable = lambda x: x or "[unknown]"
+    fl = lambda x: round(x, 1) if x is not None else None
+    for previous_day, previous_data in days[1:]:
+        consumed_diff = current_data["consumed"] - current_data["burned"]
+        try:
+            weight_diff = current_data["night_weight"] - previous_data["night_weight"]
+        except TypeError:
+            weight_diff = None
+
+        start_weight = float(settings.get('start_weight'))
+        ytd_weight = (fl(current_data["night_weight"] - start_weight)) if current_data["night_weight"] else '[unknown]'
+
+        results.append({
+            'report': (
+                f'Day {current_day}:\n\n'
+                f'Morning Weight: {missable(fl(current_data["morning_weight"]))} lbs\n'
+                f'Consumed: {fl(current_data["consumed"])} kcal '
+                f'({fl(consumed_diff)} kcal {"deficit" if consumed_diff < 0 else "surplus"})\n'
+                f'Night weight: {missable(fl(current_data["night_weight"]))} lbs\n'
+                f'Difference since yesterday: {missable(fl(weight_diff))} lbs '
+                f'from {missable(fl(previous_data["night_weight"]))}\n'
+                f'YTD: {ytd_weight} lbs from {fl(start_weight)}'
+            ),
+            'screenshot': current_data['screenshot'],
+        })
+
+        current_day, current_data = previous_day, previous_data
+    return results
+
+
+def collect_latest_reports(days):
+    return render_reports(collect_days(days + 1))
