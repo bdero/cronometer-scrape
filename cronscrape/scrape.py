@@ -69,6 +69,9 @@ def login(driver):
     driver.get('https://cronometer.com/')
 
     driver.find_element_by_css_selector('#loginli > a').click()
+    WebDriverWait(driver, IMPLICIT_WAIT).until(
+        expected_conditions.element_to_be_clickable((By.NAME, 'username'))
+    )
     driver.find_element_by_name('username').send_keys(settings.get('cronometer_email'))
     driver.find_element_by_name('password').send_keys(settings.get('cronometer_password'))
     driver.find_element_by_id('login-button').click()
