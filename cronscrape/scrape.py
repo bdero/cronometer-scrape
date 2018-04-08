@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import datetime as dt
 from functools import wraps
 from io import BytesIO
+import logging
 import time
 
 from PIL import Image
@@ -15,6 +16,8 @@ from selenium.webdriver.support import expected_conditions
 
 from cronscrape import settings
 
+
+log = logging.getLogger(__name__)
 
 IMPLICIT_WAIT = 10
 
@@ -59,6 +62,8 @@ def page_wait(func):
 
 
 def login(driver):
+    log.debug('Logging into Cronometer.')
+
     driver.implicitly_wait(IMPLICIT_WAIT)
 
     driver.get('https://cronometer.com/')
@@ -80,6 +85,11 @@ def remove_ads(driver):
 
 @page_wait
 def advance_day(driver, previous=False):
+    if previous:
+        log.debug('Advancing to previous day.')
+    else:
+        log.debug('Advancing to next day.')
+
     datepicker = driver.find_element_by_class_name('gwt-DatePicker')
     datepicker.find_element_by_xpath(
         '../div[1]//button[{button_num}]'.format(button_num=1 if previous else 2)
@@ -93,6 +103,8 @@ def resize_to_page(driver):
 
 def get_screenshot(driver, element):
     """This method is necessary because the Chrome webdriver doesn't implement screenshots for elements."""
+    log.debug('Taking screenshot of page.')
+
     resize_to_page(driver)
 
     loc = element.location
@@ -137,6 +149,8 @@ def collect_day_stats(driver):
     results['consumed'] = float(consumed_el.text)
     results['burned'] = float(burned_el.text)
 
+    log.debug('Collected stats: %s', str(results))
+
     page_element = driver.find_element_by_xpath('//table[@align="center"]/tbody')
     results['screenshot'] = get_screenshot(driver, page_element)
 
@@ -158,6 +172,7 @@ def collect_days(num_days):
 
         results = {}
         for day in range(num_days):
+            log.debug('Scraping results for day %d.', days_diff)
             results[days_diff] = collect_day_stats(driver)
             advance_day(driver, previous=True)
             days_diff -= 1
@@ -166,6 +181,8 @@ def collect_days(num_days):
 
 
 def render_reports(stats):
+    log.debug('Rendering report results.')
+
     if len(stats) < 2:
         return []
 
@@ -204,4 +221,5 @@ def render_reports(stats):
 
 
 def collect_latest_reports(days):
+    log.debug('Collecting latest reports for the last %d days.', days)
     return render_reports(collect_days(days + 1))
