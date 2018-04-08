@@ -1,0 +1,6 @@
+indexes:
+  - kind: Settings
+    ancestor: no
+    properties:
+      - name: name
+      - name: value

@@ -22,7 +22,7 @@ def get(setting):
         return result
 
     client = datastore.Client()
-    query = client.query(kind='Setting')
+    query = client.query(kind='Settings')
     query.add_filter('name', '=', setting.lower())
     result = list(query.fetch(1))
     if result:
