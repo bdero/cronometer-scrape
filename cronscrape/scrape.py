@@ -25,13 +25,16 @@ IMPLICIT_WAIT = 10
 @contextmanager
 def get_display():
     kwargs = {
-        'visible': 0,
+        'visible': 0 if settings.is_production() else 1,
         'bgcolor': 'black',
         'size': (1920, 1080),
     }
 
-    with SmartDisplay(**kwargs) as display:
-        yield display
+    if settings.is_production():
+        with SmartDisplay(**kwargs):
+            yield
+    else:
+        yield
 
 
 def page_wait(func):
@@ -69,6 +72,9 @@ def login(driver):
     driver.get('https://cronometer.com/')
 
     driver.find_element_by_css_selector('#loginli > a').click()
+    WebDriverWait(driver, IMPLICIT_WAIT).until(
+        expected_conditions.element_to_be_clickable((By.NAME, 'username'))
+    )
     driver.find_element_by_name('username').send_keys(settings.get('cronometer_email'))
     driver.find_element_by_name('password').send_keys(settings.get('cronometer_password'))
     driver.find_element_by_id('login-button').click()
@@ -102,7 +108,9 @@ def resize_to_page(driver):
 
 
 def get_screenshot(driver, element):
-    """This method is necessary because the Chrome webdriver doesn't implement screenshots for elements."""
+    """
+    This method is necessary because the Chrome and Firefox webdrivers don't implement screenshots for elements.
+    """
     log.debug('Taking screenshot of page.')
 
     resize_to_page(driver)
@@ -163,7 +171,8 @@ def collect_days(num_days):
     days_diff = time_diff.days
 
     with get_display():
-        driver = webdriver.Chrome()
+        driver = webdriver.Firefox()
+
         login(driver)
 
         if now.hour < 6 + 8:  # 6 hours past midnight, PST
@@ -176,6 +185,8 @@ def collect_days(num_days):
             results[days_diff] = collect_day_stats(driver)
             advance_day(driver, previous=True)
             days_diff -= 1
+
+        driver.close()
 
         return results
 
