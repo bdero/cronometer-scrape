@@ -14,4 +14,4 @@ RUN pip install -r /app/requirements.txt
 
 ADD . /app
 
-CMD gunicorn -b :$PORT cronscrape.main:app
+CMD gunicorn -c gunicorn_config.py cronscrape.main:app
