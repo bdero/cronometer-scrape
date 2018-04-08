@@ -1,10 +1,18 @@
 from functools import wraps
+import logging
+import sys
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 
 from cronscrape import settings
 from cronscrape.scrape import collect_latest_reports
 
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stderr)]
+)
 
 app = Flask(__name__)
 
