@@ -1,7 +1,6 @@
 from functools import wraps
 
 from flask import Flask, jsonify, request
-from google.appengine.api.taskqueue import taskqueue
 
 from cronscrape import settings
 from cronscrape.scrape import collect_latest_reports
@@ -19,23 +18,11 @@ def authenticated(func):
     return inner
 
 
-@app.route('/task_latest')
+@app.route('/latest')
 @authenticated
 def task_latest():
     amount = request.args.get('amount', default=1, type=int)
     return jsonify(collect_latest_reports(amount))
-
-
-@app.route('/latest')
-@authenticated
-def latest():
-    amount = request.args.get('amount', default=1, type=int)
-    task = taskqueue.add(
-        url='/task_latest',
-        target='worker',
-        params={'amount': amount, 'token': settings.get('token')},
-    )
-    return jsonify({'task_name': task.name})
 
 
 @app.route('/_ah/health')
