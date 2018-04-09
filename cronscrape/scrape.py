@@ -166,7 +166,13 @@ def collect_days(num_days):
     days_diff = time_diff.days
 
     with get_display():
-        driver = webdriver.Chrome()
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--verbose')
+        driver = webdriver.Chrome(
+            chrome_options=chrome_options,
+            service_log_path='/tmp/chromedriver.log',
+        )
         login(driver)
 
         if now.hour < 6 + 8:  # 6 hours past midnight, PST
@@ -179,6 +185,8 @@ def collect_days(num_days):
             results[days_diff] = collect_day_stats(driver)
             advance_day(driver, previous=True)
             days_diff -= 1
+
+            driver.quit()
 
         return results
 

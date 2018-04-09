@@ -1,3 +1,6 @@
-.git/*
-venv/*
+.git
+.idea
+__pycache__
+venv
 private.env
+*.pyc

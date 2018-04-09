@@ -4,6 +4,8 @@ RUN apt-get update \
  && apt-get install -y chromedriver xvfb unzip\
  && ln -s /usr/lib/chromium/chromedriver /usr/local/bin/chromedriver
 
+# RUN ln -sf /app/bin/chromium /usr/lib/chromium/chromium
+
 RUN virtualenv -p python3.6 /env
 
 ENV VIRTUAL_ENV /env
